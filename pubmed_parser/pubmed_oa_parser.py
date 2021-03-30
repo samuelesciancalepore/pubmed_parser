@@ -506,7 +506,7 @@ def parse_pubmed_table(path, return_xml=True):
     pmc = dict_article_meta["pmc"]
 
     # parse table
-    tables = tree.xpath(".//body.//sec.//table-wrap")
+    tables = tree.xpath(".//table-wrap")
     table_dicts = list()
     for table in tables:
         if table.find("label") is not None:
