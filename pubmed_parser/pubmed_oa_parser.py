@@ -460,9 +460,18 @@ def table_to_df(table_text):
     """
     table_tree = etree.fromstring(table_text)
     columns = []
-    for tr in table_tree.xpath("thead/tr"):
-        for c in tr.getchildren():
+
+    len_values = len(table_tree.findall("tbody/tr")[0].xpath("td"))
+
+    last_tr_thead = table_tree.xpath("thead/tr")[len(table_tree.xpath("thead/tr")) - 1]
+
+    if len(last_tr_thead) == len_values:
+        for c in last_tr_thead.getchildren():
             columns.append(unidecode(stringify_children(c)))
+    else:
+        for tr in table_tree.xpath("thead/tr"):
+            for c in tr.getchildren():
+                columns.append(unidecode(stringify_children(c)))
 
     row_values = []
     len_rows = []
