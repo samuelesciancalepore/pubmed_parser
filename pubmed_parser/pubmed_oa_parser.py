@@ -459,19 +459,45 @@ def table_to_df(table_text):
         ``row_values`` is a list of list of values in the table
     """
     table_tree = etree.fromstring(table_text)
-    columns = []
 
-    len_values = len(table_tree.findall("tbody/tr")[0].xpath("td"))
+    col_span_values = 0
 
-    last_tr_thead = table_tree.xpath("thead/tr")[len(table_tree.xpath("thead/tr")) - 1]
+    for td in table_tree.findall("tbody/tr")[0].xpath("td"):
+        if int(td.attrib.get('colspan', 0)) > 1:
+            col_span_values += int(td.attrib.get('colspan', 0)) - 1
 
-    if len(last_tr_thead) == len_values:
-        for c in last_tr_thead.getchildren():
-            columns.append(unidecode(stringify_children(c)))
-    else:
-        for tr in table_tree.xpath("thead/tr"):
-            for c in tr.getchildren():
-                columns.append(unidecode(stringify_children(c)))
+    len_values = len(table_tree.findall("tbody/tr")[0].xpath("td")) + col_span_values
+
+    len_tr_head = len(table_tree.xpath("thead/tr"))
+
+    matrix = [["" for x in range(len_values)] for y in range(len_tr_head)]
+
+    span_rows = [0 for x in range(len_tr_head)]
+
+    for (index_row, tr_head) in enumerate(table_tree.xpath("thead/tr")):
+        span_cols_counter = 0
+        for (index_col, td_head) in enumerate(tr_head.getchildren()):
+            rowspan = int(td_head.attrib.get('rowspan', 0))
+            colspan = int(td_head.attrib.get('colspan', 0))
+
+            if rowspan > 1:
+                for cursor_row in range(rowspan):
+                    matrix[index_row + cursor_row][index_col] = stringify_children(td_head)
+                    span_rows[index_row + cursor_row] += 1
+
+            if colspan > 1:
+                for cursor_col in range(colspan):
+                    matrix[index_row][index_col + cursor_col + span_cols_counter] = stringify_children(td_head)
+                span_cols_counter += (colspan - 1)
+
+            if colspan == 0 and rowspan == 0:
+                concat_string = ''
+                if index_row > 0:
+                    concat_string = matrix[index_row - 1][index_col + span_rows[index_row]] + ' '
+
+                matrix[index_row][index_col + span_rows[index_row]] = concat_string + stringify_children(td_head)
+
+    columns = matrix[len(matrix) - 1]
 
     row_values = []
     len_rows = []
